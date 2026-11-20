@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "antivancedcore"
+version = "1.4.0"
+description = "Single source of truth for the Anti<Brand>Vanced family (Baidu, Sogou, 2345, UCWeb, Naver, Kakao, QQ, WeChat, Tencent Video, Mail.ru/VK Group)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Nod33Eset" }]
+dependencies = [
+    "psutil>=5.9",
+    "ttkbootstrap>=1.10",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[tool.setuptools]
+packages = [
+    "antivancedcore",
+    "brands",
+    "brands.baidu", "brands.sogou", "brands.ant2345", "brands.ucweb",
+    "brands.naver", "brands.kakao", "brands.qq", "brands.wechat",
+    "brands.tencent", "brands.mailru",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
