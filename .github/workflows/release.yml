@@ -1,0 +1,35 @@
+name: Release
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build-all:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        brand: [baidu, sogou, ant2345, ucweb, naver, kakao, qq, wechat, tencent, mailru]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyinstaller psutil ttkbootstrap
+      - run: pip install -e .
+      - run: |
+          $brand = "${{ matrix.brand }}"
+          $exeName = "${brand}vanced"
+          $detModule = $brand + "_detect"
+          pyinstaller --onefile --name $exeName `
+            --hidden-import=antivancedcore `
+            --hidden-import=brands.$brand `
+            --hidden-import=brands.$brand.$detModule `
+            "brands\$brand\main.py"
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          files: |
+            dist/${brand}vanced.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
