@@ -59,3 +59,24 @@ python -m pytest tests/ -q          # 4 tests: i18n parity + brand wiring
 python brands/baidu/main.py         # GUI (VANCED)
 python brands/baidu/main.py --help  # CLI
 ```
+
+## Build
+
+```bash
+pip install -e ".[dev]"
+python build_all.py --clean         # all 10 brands -> dist/<brand>-vanced.exe
+python build_all.py baidu qq        # selected brands only
+python build_all.py --extended      # EXTENDED edition entry points
+```
+
+Prebuilt binaries: [releases](https://github.com/retvil/antivancedcore/releases).
+
+### Editions
+
+One codebase, two entry points per brand:
+
+- **VANCED** (`main.py`) — the brand's browser and search hijack vectors.
+- **EXTENDED** (`main_extended.py`) — everything VANCED does, plus the brand's
+  bundled products (mail clients, cloud drives, stores, local data dirs).
+
+Both editions share the core; only the scan scope and product name differ.
