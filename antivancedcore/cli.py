@@ -15,13 +15,12 @@ which findings are consent-gated) comes from ``BrandConfig``.
 """
 
 import argparse
-import importlib
 import sys
 
 
 def _detect_module(cfg):
     """Import and return the brand's detect module (scan/remove engine)."""
-    return importlib.import_module(cfg.detect_module)
+    return cfg.load_detect_module()
 
 
 def build_parser() -> argparse.ArgumentParser:

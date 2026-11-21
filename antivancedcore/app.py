@@ -20,17 +20,17 @@ from tkinter import messagebox
 import psutil
 import ttkbootstrap as ttk
 
-import backup
-import engines
-import exclusions
-import policies
-import products_detect
-import profiles
-import report
-import restore
-import translations
-import updater
-import watchdog
+import antivancedcore.backup as backup
+import antivancedcore.engines as engines
+import antivancedcore.exclusions as exclusions
+import antivancedcore.policies as policies
+import antivancedcore.products_detect as products_detect
+import antivancedcore.profiles as profiles
+import antivancedcore.report as report
+import antivancedcore.restore as restore
+import antivancedcore.translations as translations
+import antivancedcore.updater as updater
+import antivancedcore.watchdog as watchdog
 from antivancedcore.brand import BrandConfig
 
 TEXT_MUTED = "#6b7280"
@@ -83,9 +83,7 @@ def run_in_ui(fn):
 
 def _detect():
     """Import the brand's detect module (the scan/remove engine)."""
-    import importlib
-
-    return importlib.import_module(CFG.detect_module)
+    return CFG.load_detect_module()
 
 
 def _brand_paths():

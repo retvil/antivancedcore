@@ -65,6 +65,27 @@ class BrandConfig:
         """Operation log: <base_dir>/<name lower>.log."""
         return self.base_dir / f"anti{self.name.lower()}.log"
 
+    @property
+    def brand_dir(self) -> str:
+        """Directory name under ``brands/`` (detect module minus ``_detect``)."""
+        return self.detect_module.removesuffix("_detect")
+
+    def load_detect_module(self):
+        """Import and return this brand's detect (scan/remove) module.
+
+        Resolution order:
+          1. ``<detect_module>`` as a top-level module (flat per-brand fork).
+          2. ``brands.<brand_dir>.<detect_module>`` (monorepo / frozen EXE).
+        """
+        import importlib
+
+        try:
+            return importlib.import_module(self.detect_module)
+        except ModuleNotFoundError:
+            return importlib.import_module(
+                f"brands.{self.brand_dir}.{self.detect_module}"
+            )
+
     def __str__(self) -> str:  # pragma: no cover - diagnostics
         return f"BrandConfig({self.name}, {self.repo}, {self.appdata_dir})"
 
