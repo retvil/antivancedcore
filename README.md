@@ -24,6 +24,7 @@ brands/
 tests/
   test_brand.py         validates every brand's CFG + detect wiring
   test_i18n.py          translation-key parity across 10 languages
+  test_core_wiring.py   runs the real scan for all 10 brands x 2 profiles
 ```
 
 ## How it works
@@ -67,6 +68,8 @@ pip install -e ".[dev]"
 python build_all.py --clean         # all 10 brands -> dist/<brand>-vanced.exe
 python build_all.py baidu qq        # selected brands only
 python build_all.py --extended      # EXTENDED edition entry points
+python verify_build.py              # smoke-test every EXE in dist/
+python verify_build.py --skip-gui   # CLI checks only (faster)
 ```
 
 Prebuilt binaries: [releases](https://github.com/retvil/antivancedcore/releases).

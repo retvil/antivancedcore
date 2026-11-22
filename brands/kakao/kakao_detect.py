@@ -1027,7 +1027,21 @@ def scan_keyboard_layouts() -> list[str]:
     return found
 
 
-def scan_all(profile: str | None = None) -> list[str]:
+_BRAND_PREFIX = "kakao"
+
+
+def _step_needs_cfg(fn) -> bool:
+    """True when a scan step expects a BrandConfig argument."""
+    import inspect
+
+    try:
+        params = inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        return False
+    return "cfg" in params
+
+
+def scan_all(profile: str | None = None, cfg=None) -> list[str]:
     """Run the detection vectors of a product profile and return findings.
 
     Args:
@@ -1036,11 +1050,26 @@ def scan_all(profile: str | None = None) -> list[str]:
     if profile is None:
         profile = profiles.EXTENDED
     findings: list[str] = []
+    brand_prefix = _BRAND_PREFIX
     for step in profiles.PROFILE_SCANS[profiles.validate(profile)]:
         if step == "scan_install_paths":
             findings += [f"Install path: {p}" for p in scan_install_paths()]
             continue
-        findings += globals()[step]()
+        # Canonical step name first, then the brand-infixed variant:
+        #   scan_software_keys -> scan_baidu_software_keys
+        # (profiles.py is brand-agnostic; detect modules may be prefixed).
+        fn = globals().get(step)
+        if fn is None and step.startswith("scan_"):
+            fn = globals().get(f"scan_{brand_prefix}_{step[5:]}")
+        if fn is None:
+            continue  # this brand does not implement that vector
+        # Extended vectors (store apps, product dirs, local data, DNS) need cfg.
+        if _step_needs_cfg(fn):
+            if cfg is None:
+                continue
+            findings += fn(cfg)
+        else:
+            findings += fn()
     return findings
 
 

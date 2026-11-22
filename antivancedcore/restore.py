@@ -75,7 +75,7 @@ def restore(cfg: BrandConfig, session_dir: Path | None = None) -> dict:
 
     Returns {'reg': n, 'tasks': n, 'files': n, 'errors': [...], 'session': str}.
     """
-    import backup
+    from antivancedcore import backup
 
     src = session_dir or last_session(cfg)
     result = {

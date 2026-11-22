@@ -2,11 +2,11 @@
 
 
 a = Analysis(
-    ['brands\\baidu\\main.py'],
+    ['D:\\Project\\AntiVancedCore\\brands\\baidu\\main.py'],
     pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=['antivancedcore', 'antivancedcore.brand', 'antivancedcore.backup', 'antivancedcore.products_detect', 'antivancedcore.profiles', 'antivancedcore.policies', 'antivancedcore.engines', 'antivancedcore.exclusions', 'antivancedcore.report', 'antivancedcore.restore', 'antivancedcore.translations', 'antivancedcore.updater', 'antivancedcore.watchdog', 'tkinter', 'ttkbootstrap', 'psutil', 'brands.baidu', 'brands.baidu.baidu_detect'],
+    hiddenimports=['antivancedcore', 'antivancedcore.brand', 'antivancedcore.backup', 'antivancedcore.products_detect', 'antivancedcore.profiles', 'antivancedcore.policies', 'antivancedcore.engines', 'antivancedcore.exclusions', 'antivancedcore.report', 'antivancedcore.restore', 'antivancedcore.translations', 'antivancedcore.updater', 'antivancedcore.watchdog', 'antivancedcore.cli', 'antivancedcore.app', 'tkinter', 'ttkbootstrap', 'psutil', 'brands.baidu', 'brands.baidu.baidu_detect'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

@@ -17,6 +17,6 @@ from brands.ant2345.brand_config import CFG
 
 if __name__ == "__main__" and len(sys.argv) > 1:
     import antivancedcore.cli as cli
-    sys.exit(cli.main(CFG, sys.argv[1:]))
+    sys.exit(cli.main(CFG, sys.argv[1:], profile="vanced"))
 
 _app.run(CFG, "vanced")

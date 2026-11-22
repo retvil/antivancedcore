@@ -53,6 +53,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Write HTML findings report to PATH.")
     p.add_argument("--list-engines", action="store_true",
                    help="Print available search engines and exit.")
+    p.add_argument("--profile", choices=("vanced", "extended"), default=None,
+                   help="Scan profile (default: the edition this build was launched as).")
     return p
 
 
@@ -62,10 +64,9 @@ def _cmd_scan(cfg, profile: str) -> list[str]:
 
 
 def _cmd_apply(cfg, args) -> int:
-    import backup
-    import policies
-    from antivancedcore import engines
     import psutil
+
+    from antivancedcore import backup, engines, policies
 
     det = _detect_module(cfg)
 
@@ -85,10 +86,11 @@ def _cmd_apply(cfg, args) -> int:
         selected = findings
     else:
         selected = [f for f in findings if not f.startswith(det.CONSENT_PREFIXES)]
-    removed, failed = det.remove_selected(selected, cfg)
+    removed, failed = det.remove_selected(selected)
     print(f"removed: {len(removed)} failed: {len(failed)}")
 
     # Apply policy
+    pfailed: list[str] = []
     if args.apply_policy:
         engine = engines.get_engine(args.apply_policy)
         applied, pfailed = policies.apply_chromium(cfg, engine)
@@ -144,12 +146,16 @@ def _cmd_report(cfg, args) -> int:
     return 2 if findings else 0
 
 
-def main(cfg, argv: list[str] | None = None) -> int:
-    """Run the CLI. ``cfg`` is a fully-populated BrandConfig."""
+def main(cfg, argv: list[str] | None = None, profile: str = "vanced") -> int:
+    """Run the CLI.
+
+    ``cfg`` is a fully-populated BrandConfig; ``profile`` is the edition the
+    entry point was launched as ("vanced" or "extended") and is used unless
+    ``--profile`` overrides it.
+    """
     parser = build_parser()
     args = parser.parse_args(argv)
-    # profile is set by the caller (main.py / main_extended.py)
-    args.profile = getattr(args, "profile", "vanced")
+    args.profile = args.profile or profile
 
     if args.list_engines:
         from antivancedcore import engines

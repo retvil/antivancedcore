@@ -87,8 +87,16 @@ def _detect():
 
 
 def _brand_paths():
-    """Brand install paths (from the detect module, e.g. BAIDU_PATHS)."""
-    return _detect().INSTALL_PATHS
+    """Brand install paths (from the detect module's <BRAND>_PATHS constant).
+
+    Falls back to the universal ``scan_install_paths()`` when a detect module
+    does not expose a ``*_PATHS`` candidate list.
+    """
+    det = _detect()
+    for name in dir(det):
+        if name.endswith("_PATHS") and not name.startswith("UNINSTALL"):
+            return list(getattr(det, name))
+    return det.scan_install_paths()
 
 
 def check_registry_for_brand():
@@ -259,7 +267,7 @@ def remove_hijacks():
 
 def _remove_selected_task(selected: list[str]) -> None:
     """Background removal of the user-selected findings + result reporting."""
-    removed, failed = _detect().remove_selected(selected, CFG)
+    removed, failed = _detect().remove_selected(selected)
 
     def done():
         if removed:
