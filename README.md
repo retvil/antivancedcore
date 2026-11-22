@@ -25,6 +25,10 @@ tests/
   test_brand.py         validates every brand's CFG + detect wiring
   test_i18n.py          translation-key parity across 10 languages
   test_core_wiring.py   runs the real scan for all 10 brands x 2 profiles
+tools/
+  check_core_detect_calls.py  bind every core -> detect call to its signature
+  check_detect_constants.py   every det.CONST exists in all 10 brands
+  check_finding_coverage.py   every emitted finding has a removal handler
 ```
 
 ## How it works
