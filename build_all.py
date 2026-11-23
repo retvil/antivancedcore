@@ -83,9 +83,41 @@ def build(brand: str, extended: bool) -> bool:
     return exe.is_file()
 
 
+def build_multi() -> bool:
+    """One EXE that bundles all 10 brands with a runtime picker."""
+    cmd = [
+        sys.executable, "-m", "PyInstaller",
+        "--onefile", "--windowed", "--name=antivancedcore",
+        "--noconfirm",
+    ]
+    for mod in CORE_MODULES + THIRD_PARTY:
+        cmd.append(f"--hidden-import={mod}")
+    for brand in BRANDS:
+        cmd += [
+            f"--hidden-import=brands.{brand}",
+            f"--hidden-import=brands.{brand}.{brand}_detect",
+            f"--hidden-import=brands.{brand}.brand_config",
+        ]
+    cmd += ["main_multi.py"]
+
+    print("[multi] building antivancedcore.exe (all 10 brands) ...")
+    result = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+    if result.returncode != 0:
+        print("[multi] FAILED")
+        print(result.stdout[-2000:])
+        print(result.stderr[-2000:])
+        return False
+
+    exe = ROOT / "dist" / "antivancedcore.exe"
+    size = exe.stat().st_size if exe.is_file() else 0
+    print(f"[multi] OK  {exe.name}  {size:,} bytes")
+    return exe.is_file()
+
+
 def main(argv: list[str]) -> int:
     extended = "--extended" in argv
     clean = "--clean" in argv
+    multi = "--multi" in argv
     picked = [a for a in argv if not a.startswith("--")] or BRANDS
 
     unknown = [b for b in picked if b not in BRANDS]
@@ -98,6 +130,12 @@ def main(argv: list[str]) -> int:
         for d in ("build", "dist"):
             shutil.rmtree(ROOT / d, ignore_errors=True)
         print("cleaned build/ and dist/")
+
+    if multi:
+        ok = build_multi()
+        print()
+        print("multi EXE: " + ("OK" if ok else "FAILED"))
+        return 0 if ok else 1
 
     built = [b for b in picked if build(b, extended)]
     failed = [b for b in picked if b not in built]

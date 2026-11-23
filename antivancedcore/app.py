@@ -538,12 +538,17 @@ def remove_brand_policies():
     threading.Thread(target=task, daemon=True).start()
 
 
-def run(cfg: BrandConfig, profile_name: str) -> None:
+def run(cfg: BrandConfig, profile_name: str, brands: dict | None = None) -> None:
     """Build the GUI for one product profile and start the main loop.
 
     Args:
-        cfg: Fully-populated BrandConfig for the target brand.
+        cfg: Fully-populated BrandConfig for the target brand (default target
+            when a picker is shown).
         profile_name: profiles.VANCED or profiles.EXTENDED.
+        brands: Optional ``{brand_dir: BrandConfig}`` registry. When given, a
+            brand selector is shown at the top of the window; choosing one
+            re-binds ``CFG`` and refreshes the whole interface. This is what
+            makes the single multi-brand EXE possible.
     """
     global CFG, PROFILE, language
     global root, status_label, findings_box, engine_menu, main_label
@@ -587,7 +592,7 @@ def run(cfg: BrandConfig, profile_name: str) -> None:
     )
     github_link.pack(side="right")
     github_link.bind(
-        "<Button-1>", lambda e: webbrowser.open(f"https://github.com/{cfg.repo}")
+        "<Button-1>", lambda e: webbrowser.open(f"https://github.com/{CFG.repo}")
     )
 
     # Auto-update indicator (filled by check_update_ui when a newer release exists)
@@ -667,6 +672,40 @@ def run(cfg: BrandConfig, profile_name: str) -> None:
                 language = code
                 break
         update_ui()
+
+    # Brand selector (only in multi-brand mode): pick which vendor to target
+    if brands:
+        brand_bar = ttk.Frame(root, padding=(20, 10, 20, 0))
+        brand_bar.pack(fill="x")
+
+        brand_names = [b.name for b in brands.values()]
+        brand_menu = ttk.Combobox(
+            brand_bar,
+            values=brand_names,
+            state="readonly",
+            width=15,
+            font=("Segoe UI", 11, "bold"),
+        )
+        brand_menu.set(cfg.name)
+        brand_menu.pack(side="right")
+
+        def on_brand_change(choice):
+            global CFG
+            for b in brands.values():
+                if b.name == choice:
+                    CFG = b
+                    last_findings.clear()
+                    update_ui()
+                    break
+
+        brand_menu.bind("<<ComboboxSelected>>", on_brand_change)
+        brand_menu_label = ttk.Label(
+            brand_bar,
+            font=("Segoe UI", 11),
+            foreground=TEXT_MUTED,
+            text=t("brand_label"),
+        )
+        brand_menu_label.pack(side="right", padx=(0, 8))
 
     # Language selector: single dropdown, top-right corner
     lang_bar = ttk.Frame(root, padding=(20, 10, 20, 0))
@@ -750,6 +789,12 @@ def run(cfg: BrandConfig, profile_name: str) -> None:
         chk_watchdog.configure(text=t("watchdog_label"))
         update_status(t("status_wait"))
         _render_findings([])  # stale findings are in the previous language
+        # Multi-brand mode: footer shows the currently selected brand.
+        global footer_label
+        footer_label.configure(
+            text=f"{CFG.product_names[PROFILE]} {CFG.app_version} "
+                 f"by {CFG.app_author} |"
+        )
 
     update_ui()
 

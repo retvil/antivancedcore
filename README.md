@@ -87,3 +87,18 @@ One codebase, two entry points per brand:
   bundled products (mail clients, cloud drives, stores, local data dirs).
 
 Both editions share the core; only the scan scope and product name differ.
+
+### Unified multi-brand EXE
+
+`main_multi.py` bundles **all 10 brands into a single EXE** with a runtime
+brand picker — the user picks which vendor to find and remove, no separate
+download per brand.
+
+```
+antivancedcore.exe                     # GUI: brand picker at the top
+antivancedcore.exe --brand baidu --scan-only
+antivancedcore.exe --brand mailru --scan-only --profile extended
+antivancedcore.exe --list-engines
+```
+
+Build it with `python build_all.py --multi` -> `dist/antivancedcore.exe`.

@@ -92,7 +92,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "export_fail":  "Не удалось экспортировать отчёт",
 "cli_done":  "Готово: {}",
 "cli_error":  "Ошибка: {}",
-    },
+        "brand_label":  "Бренд:",
+},
 "en":  {
 "title":  "Remove {brand}",
 "search_btn":  "Search {brand}",
@@ -164,7 +165,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "export_fail":  "Could not export report",
 "cli_done":  "Done: {}",
 "cli_error":  "Error: {}",
-    },
+        "brand_label":  "Brand:",
+},
 "uk":  {
 "title":  "Видалення {brand}",
 "search_btn":  "Пошук {brand}",
@@ -236,7 +238,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "export_fail":  "Не вдалося експортувати звіт",
 "cli_done":  "Готово: {}",
 "cli_error":  "Помилка: {}",
-    },
+        "brand_label":  "Бренд:",
+},
 "kk":  {
 "title":  "{brand} Browser-ді толық жою",
 "search_btn":  "{brand}-ді іздеу",
@@ -308,7 +311,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "export_fail":  "Есепті экспорттау мүмкін болмады",
 "cli_done":  "Дайын: {}",
 "cli_error":  "Қате: {}",
-    },
+        "brand_label":  "Бренд:",
+},
 "de":  {
 "title":  "{brand}-Entferner",
 "search_btn":  "{brand} suchen",
@@ -380,7 +384,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "export_fail":  "Bericht konnte nicht exportiert werden",
 "cli_done":  "Fertig: {}",
 "cli_error":  "Fehler: {}",
-    },
+        "brand_label":  "Marke:",
+},
 "fr":  {
 "title":  "Suppression de {brand}",
 "search_btn":  "Rechercher {brand}",
@@ -452,7 +457,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "export_fail":  "Impossible d'exporter le rapport",
 "cli_done":  "Terminé : {}",
 "cli_error":  "Erreur : {}",
-    },
+        "brand_label":  "Marque :",
+},
 "es":  {
 "title":  "Eliminador de {brand}",
 "search_btn":  "Buscar {brand}",
@@ -524,7 +530,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "export_fail":  "No se pudo exportar el informe",
 "cli_done":  "Hecho: {}",
 "cli_error":  "Error: {}",
-    },
+        "brand_label":  "Marca:",
+},
 "pl":  {
 "title":  "Usuwanie {brand}",
 "search_btn":  "Szukaj {brand}",
@@ -596,7 +603,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "export_fail":  "Nie udało się wyeksportować raportu",
 "cli_done":  "Gotowe: {}",
 "cli_error":  "Błąd: {}",
-    },
+        "brand_label":  "Marka:",
+},
 "tr":  {
 "title":  "{brand} Kaldırıcı",
 "search_btn":  "{brand} Ara",
@@ -668,7 +676,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "export_fail":  "Rapor dışa aktarılamadı",
 "cli_done":  "Tamamlandı: {}",
 "cli_error":  "Hata: {}",
-    },
+        "brand_label":  "Marka:",
+},
 "zh":  {
 "title":  "{brand} 移除工具",
 "search_btn":  "搜索 {brand}",
@@ -740,7 +749,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "export_fail":  "无法导出报告",
 "cli_done":  "完成：{}",
 "cli_error":  "错误：{}",
-    },
+        "brand_label":  "品牌：",
+},
 }
 
 DEFAULT_LANGUAGE = "en"

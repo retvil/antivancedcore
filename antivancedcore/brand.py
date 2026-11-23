@@ -90,4 +90,23 @@ class BrandConfig:
         return f"BrandConfig({self.name}, {self.repo}, {self.appdata_dir})"
 
 
-__all__ = ["BrandConfig"]
+def load_all_brands() -> dict[str, BrandConfig]:
+    """Import every brand's CFG, keyed by brand directory name.
+
+    Used by the multi-brand EXE. Each value is a fully-populated BrandConfig
+    that also knows how to load its own detect module. Importing one brand
+    never triggers another's detect module (that happens lazily on first scan).
+    """
+    import importlib
+
+    registry = {}
+    for brand_dir in (
+        "baidu", "sogou", "ant2345", "ucweb", "naver",
+        "kakao", "qq", "wechat", "tencent", "mailru",
+    ):
+        mod = importlib.import_module(f"brands.{brand_dir}.brand_config")
+        registry[brand_dir] = mod.CFG
+    return registry
+
+
+__all__ = ["BrandConfig", "load_all_brands"]
