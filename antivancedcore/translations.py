@@ -93,6 +93,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "cli_done":  "Готово: {}",
 "cli_error":  "Ошибка: {}",
         "brand_label":  "Бренд:",
+    "quick_actions":  "Быстрые действия",
+    "findings_label":  "Найдено",
+    "findings_count":  "{} объектов",
 },
 "en":  {
 "title":  "Remove {brand}",
@@ -166,6 +169,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "cli_done":  "Done: {}",
 "cli_error":  "Error: {}",
         "brand_label":  "Brand:",
+    "quick_actions":  "Quick actions",
+    "findings_label":  "Found",
+    "findings_count":  "{} item(s)",
 },
 "uk":  {
 "title":  "Видалення {brand}",
@@ -239,6 +245,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "cli_done":  "Готово: {}",
 "cli_error":  "Помилка: {}",
         "brand_label":  "Бренд:",
+    "quick_actions":  "Швидкі дії",
+    "findings_label":  "Знайдено",
+    "findings_count":  "{} об'єктів",
 },
 "kk":  {
 "title":  "{brand} Browser-ді толық жою",
@@ -312,6 +321,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "cli_done":  "Дайын: {}",
 "cli_error":  "Қате: {}",
         "brand_label":  "Бренд:",
+    "quick_actions":  "Жылдам әрекеттер",
+    "findings_label":  "Табылды",
+    "findings_count":  "{} дұрыс",
 },
 "de":  {
 "title":  "{brand}-Entferner",
@@ -385,6 +397,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "cli_done":  "Fertig: {}",
 "cli_error":  "Fehler: {}",
         "brand_label":  "Marke:",
+    "quick_actions":  "Schnellaktionen",
+    "findings_label":  "Gefunden",
+    "findings_count":  "{} Elemente",
 },
 "fr":  {
 "title":  "Suppression de {brand}",
@@ -458,6 +473,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "cli_done":  "Terminé : {}",
 "cli_error":  "Erreur : {}",
         "brand_label":  "Marque :",
+    "quick_actions":  "Actions rapides",
+    "findings_label":  "Trouvé",
+    "findings_count":  "{} élément(s)",
 },
 "es":  {
 "title":  "Eliminador de {brand}",
@@ -531,6 +549,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "cli_done":  "Hecho: {}",
 "cli_error":  "Error: {}",
         "brand_label":  "Marca:",
+    "quick_actions":  "Acciones rápidas",
+    "findings_label":  "Encontrado",
+    "findings_count":  "{} elemento(s)",
 },
 "pl":  {
 "title":  "Usuwanie {brand}",
@@ -604,6 +625,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "cli_done":  "Gotowe: {}",
 "cli_error":  "Błąd: {}",
         "brand_label":  "Marka:",
+    "quick_actions":  "Szybkie działania",
+    "findings_label":  "Znaleziono",
+    "findings_count":  "{} element(ów)",
 },
 "tr":  {
 "title":  "{brand} Kaldırıcı",
@@ -677,6 +701,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "cli_done":  "Tamamlandı: {}",
 "cli_error":  "Hata: {}",
         "brand_label":  "Marka:",
+    "quick_actions":  "Hızlı işlemler",
+    "findings_label":  "Bulundu",
+    "findings_count":  "{} öğe",
 },
 "zh":  {
 "title":  "{brand} 移除工具",
@@ -750,6 +777,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 "cli_done":  "完成：{}",
 "cli_error":  "错误：{}",
         "brand_label":  "品牌：",
+    "quick_actions":  "快速操作",
+    "findings_label":  "已找到",
+    "findings_count":  "{} 项",
 },
 }
 

@@ -74,6 +74,25 @@ def is_admin() -> bool:
 
 def update_status(status, color=STATUS_COLORS["info"]):
     status_label.configure(text=status, foreground=color)
+    if "status_dot" in globals():
+        status_dot.configure(foreground=color)
+
+
+def _set_findings_count(n):
+    """Update the live findings count label (no-op when the widget isn't up yet)."""
+    if "findings_label" in globals():
+        findings_label.configure(
+            text=t("findings_count").format(n) if n else t("findings_label")
+        )
+
+
+def _render_findings(lines):
+    findings_box.configure(state=tk.NORMAL)
+    findings_box.delete("1.0", tk.END)
+    for line in lines:
+        findings_box.insert(tk.END, line + "\n")
+    findings_box.configure(state=tk.DISABLED)
+    _set_findings_count(len(lines))
 
 
 def run_in_ui(fn):
@@ -201,14 +220,6 @@ def uninstall_brand_browser():
             run_in_ui(fail_locked2)
 
     threading.Thread(target=task, daemon=True).start()
-
-
-def _render_findings(lines):
-    findings_box.configure(state=tk.NORMAL)
-    findings_box.delete("1.0", tk.END)
-    for line in lines:
-        findings_box.insert(tk.END, line + "\n")
-    findings_box.configure(state=tk.DISABLED)
 
 
 def scan_hijacks():
@@ -551,7 +562,8 @@ def run(cfg: BrandConfig, profile_name: str, brands: dict | None = None) -> None
             makes the single multi-brand EXE possible.
     """
     global CFG, PROFILE, language
-    global root, status_label, findings_box, engine_menu, main_label
+    global root, status_label, findings_box, engine_menu, main_label, footer_label
+    global status_dot, findings_label, findings_scroll, actions_card
     global btn_check, btn_registry, btn_kill, btn_delete
     global btn_hijack, btn_hijack_remove, policy_card, hijack_card, maint_card
     global btn_policy, btn_unbaidu_policy, update_link
@@ -562,7 +574,8 @@ def run(cfg: BrandConfig, profile_name: str, brands: dict | None = None) -> None
     language = translations.detect_system_language()
 
     # --- GUI ---
-    root = ttk.Window(themename="flatly", size=(400, 700), minsize=(360, 680))
+    # Wider window with breathing room; minsize keeps every card usable.
+    root = ttk.Window(themename="flatly", size=(480, 780), minsize=(420, 720))
     root.title(t("title"))
 
     # App icon (logo.ico next to the brand assets)
@@ -578,57 +591,135 @@ def run(cfg: BrandConfig, profile_name: str, brands: dict | None = None) -> None
     style.configure("Card.TLabel", background="#ffffff")
     style.configure("CardTitle.TLabel", background="#ffffff", font=("Segoe UI", 11, "bold"))
     style.configure("TLabelframe.Label", font=("Segoe UI", 10, "bold"), foreground="#334155")
+    style.configure("Muted.TLabel", background="#ffffff", foreground=TEXT_MUTED,
+                    font=("Segoe UI", 9))
 
-    # Footer: pinned bottom-right, packed FIRST so it keeps its space
-    footer = ttk.Frame(root, padding=(16, 4, 16, 10))
-    footer.pack(side="bottom", fill="x")
+    def on_language_change(choice):
+        global language
+        for code, display in translations.LANG_DISPLAY_NAMES.items():
+            if display == choice:
+                language = code
+                break
+        update_ui()
 
-    github_link = ttk.Label(
-        footer,
-        font=("Segoe UI", 9, "underline"),
-        foreground="#0369a1",
-        text="GitHub",
-        cursor="hand2",
+    # Brand selector (multi-brand mode only): the headline feature, so it gets
+    # a hero position. Shown above the title, full width, large font.
+    brand_menu = None
+    if brands:
+        brand_bar = ttk.Labelframe(root, text=t("brand_label"), padding=(16, 10, 16, 10))
+        brand_bar.pack(fill="x", padx=20, pady=(14, 0))
+
+        brand_names = [b.name for b in brands.values()]
+        brand_menu = ttk.Combobox(
+            brand_bar,
+            values=brand_names,
+            state="readonly",
+            font=("Segoe UI", 13, "bold"),
+        )
+        brand_menu.set(cfg.name)
+        brand_menu.pack(fill="x")
+
+        def on_brand_change(choice):
+            global CFG
+            for b in brands.values():
+                if b.name == choice:
+                    CFG = b
+                    last_findings.clear()
+                    _render_findings([])
+                    update_ui()
+                    break
+
+        brand_menu.bind("<<ComboboxSelected>>", on_brand_change)
+
+    # Language selector: single dropdown, top-right
+    lang_bar = ttk.Frame(root, padding=(20, 10, 20, 0))
+    lang_bar.pack(fill="x")
+
+    lang_menu = ttk.Combobox(
+        lang_bar,
+        values=list(translations.LANG_DISPLAY_NAMES.values()),
+        state="readonly",
+        width=13,
+        font=("Segoe UI", 11),
     )
-    github_link.pack(side="right")
-    github_link.bind(
-        "<Button-1>", lambda e: webbrowser.open(f"https://github.com/{CFG.repo}")
+    lang_menu.set(translations.LANG_DISPLAY_NAMES[language])
+    lang_menu.bind("<<ComboboxSelected>>", on_language_change)
+    lang_menu.pack(side="right")
+
+    # Title: large, centered
+    main_label = ttk.Label(root, font=("Segoe UI", 20, "bold"), anchor="center")
+    main_label.pack(fill="x", padx=20, pady=(10, 12))
+
+    # Quick actions: 2x2 grid instead of 4 full-width stacked rows
+    actions_card = ttk.Labelframe(root, text=t("quick_actions"), padding=(14, 10, 14, 12))
+    actions_card.pack(fill="x", padx=20, pady=(4, 6))
+
+    actions = ttk.Frame(actions_card)
+    actions.pack(fill="x")
+    for col in (0, 1):
+        actions.columnconfigure(col, weight=1, uniform="col")
+    actions.rowconfigure(0, weight=1, uniform="row")
+
+    btn_check = ttk.Button(actions, bootstyle="info", command=check_brand_browser)
+    btn_check.grid(row=0, column=0, sticky="ew", padx=(0, 4), pady=3)
+
+    btn_registry = ttk.Button(actions, bootstyle="secondary", command=check_registry_for_brand)
+    btn_registry.grid(row=0, column=1, sticky="ew", padx=(4, 0), pady=3)
+
+    btn_kill = ttk.Button(actions, bootstyle="info", command=kill_brand_processes)
+    btn_kill.grid(row=1, column=0, sticky="ew", padx=(0, 4), pady=3)
+
+    btn_delete = ttk.Button(actions, bootstyle="danger", command=uninstall_brand_browser)
+    btn_delete.grid(row=1, column=1, sticky="ew", padx=(4, 0), pady=3)
+
+    # Search hijacks: the main workflow, visually prominent with a scrollable
+    # findings list and a live count.
+    hijack_card = ttk.Labelframe(root, text=t("hijack_section"), padding=(14, 10, 14, 12))
+    hijack_card.pack(fill="x", padx=20, pady=(4, 6))
+
+    btn_hijack = ttk.Button(hijack_card, bootstyle="primary", command=scan_hijacks)
+    btn_hijack.pack(fill="x", pady=(0, 6))
+
+    findings_header = ttk.Frame(hijack_card)
+    findings_header.pack(fill="x", pady=(0, 4))
+
+    findings_label = ttk.Label(
+        findings_header, text="", style="Muted.TLabel", font=("Segoe UI", 9)
     )
+    findings_label.pack(side="left")
 
-    # Auto-update indicator (filled by check_update_ui when a newer release exists)
-    update_link = ttk.Label(
-        footer, font=("Segoe UI", 9), foreground=TEXT_MUTED, text="", cursor="hand2"
+    findings_wrap = ttk.Frame(hijack_card)
+    findings_wrap.pack(fill="x", pady=(0, 6))
+
+    findings_box = tk.Text(
+        findings_wrap,
+        height=5,
+        wrap="word",
+        font=("Consolas", 10),
+        relief="flat",
+        background="#f8fafc",
+        foreground="#1f2937",
+        borderwidth=0,
+        highlightthickness=1,
+        highlightbackground="#e2e8f0",
+        padx=8,
+        pady=6,
     )
-    update_link.pack(side="right", padx=(0, 4))
+    findings_box.pack(side="left", fill="both", expand=True)
 
-    footer_label = ttk.Label(
-        footer,
-        font=("Segoe UI", 9),
-        foreground=TEXT_MUTED,
-        text=f"{cfg.product_names[PROFILE]} {cfg.app_version} by {cfg.app_author} |",
-    )
-    footer_label.pack(side="right", padx=(0, 4))
+    findings_scroll = ttk.Scrollbar(findings_wrap, orient="vertical", command=findings_box.yview)
+    findings_scroll.pack(side="right", fill="y")
+    findings_box.configure(yscrollcommand=findings_scroll.set)
+    findings_box.configure(state=tk.DISABLED)
 
-    # Status bar: packed second (above footer) so it also survives window resize
-    status_label = ttk.Label(
-        root, font=("Segoe UI", 10), justify="center", anchor="center", padding=(20, 8, 20, 6)
-    )
-    status_label.pack(side="bottom", fill="x")
+    btn_hijack_remove = ttk.Button(hijack_card, bootstyle="warning", command=remove_hijacks)
+    btn_hijack_remove.pack(fill="x", pady=(0, 2))
 
-    def _retune_wraplength(event=None):
-        width = status_label.winfo_width()
-        if width > 1:
-            new_wrap = max(120, width - 40)
-            if status_label.cget("wraplength") != new_wrap:
-                status_label.configure(wraplength=new_wrap)
-
-    root.bind("<Configure>", _retune_wraplength)
-
-    # Policy section card: pinned above the status bar
+    # Default search policy
     policy_card = ttk.Labelframe(
-        root, text=t("policy_section"), padding=(16, 8, 16, 12)
+        root, text=t("policy_section"), padding=(14, 10, 14, 12)
     )
-    policy_card.pack(side="bottom", fill="x", padx=20, pady=(10, 4))
+    policy_card.pack(fill="x", padx=20, pady=(4, 6))
 
     policy_row = ttk.Frame(policy_card)
     policy_row.pack(fill="x", pady=(4, 8))
@@ -647,15 +738,20 @@ def run(cfg: BrandConfig, profile_name: str, brands: dict | None = None) -> None
     )
     btn_unbaidu_policy.pack(fill="x", pady=(0, 2))
 
-    # Maintenance row: restore / export / watchdog
-    maint_card = ttk.Labelframe(root, text=t("maintenance_section"), padding=(16, 8, 16, 12))
-    maint_card.pack(side="bottom", fill="x", padx=20, pady=(6, 4))
+    # Maintenance: restore / export / watchdog
+    maint_card = ttk.Labelframe(root, text=t("maintenance_section"), padding=(14, 10, 14, 12))
+    maint_card.pack(fill="x", padx=20, pady=(4, 6))
 
-    btn_restore = ttk.Button(maint_card, bootstyle="secondary", command=restore_backup_ui)
-    btn_restore.pack(fill="x", pady=(2, 2))
+    maint_row = ttk.Frame(maint_card)
+    maint_row.pack(fill="x", pady=(2, 2))
+    for col in (0, 1):
+        maint_row.columnconfigure(col, weight=1, uniform="col")
 
-    btn_export = ttk.Button(maint_card, bootstyle="secondary", command=export_report_ui)
-    btn_export.pack(fill="x", pady=(2, 2))
+    btn_restore = ttk.Button(maint_row, bootstyle="secondary", command=restore_backup_ui)
+    btn_restore.grid(row=0, column=0, sticky="ew", padx=(0, 4))
+
+    btn_export = ttk.Button(maint_row, bootstyle="secondary", command=export_report_ui)
+    btn_export.grid(row=0, column=1, sticky="ew", padx=(4, 0))
 
     watchdog_var = tk.BooleanVar(value=watchdog.is_installed(CFG))
     chk_watchdog = ttk.Checkbutton(
@@ -663,111 +759,62 @@ def run(cfg: BrandConfig, profile_name: str, brands: dict | None = None) -> None
         variable=watchdog_var,
         command=lambda: toggle_watchdog_ui(watchdog_var.get()),
     )
-    chk_watchdog.pack(fill="x", pady=(2, 2))
+    chk_watchdog.pack(fill="x", pady=(4, 2))
 
-    def on_language_change(choice):
-        global language
-        for code, display in translations.LANG_DISPLAY_NAMES.items():
-            if display == choice:
-                language = code
-                break
-        update_ui()
+    # Status bar: colored dot indicator + text, above the footer
+    status_bar = ttk.Frame(root, padding=(20, 8, 20, 6))
+    status_bar.pack(side="bottom", fill="x")
 
-    # Brand selector (only in multi-brand mode): pick which vendor to target
-    if brands:
-        brand_bar = ttk.Frame(root, padding=(20, 10, 20, 0))
-        brand_bar.pack(fill="x")
-
-        brand_names = [b.name for b in brands.values()]
-        brand_menu = ttk.Combobox(
-            brand_bar,
-            values=brand_names,
-            state="readonly",
-            width=15,
-            font=("Segoe UI", 11, "bold"),
-        )
-        brand_menu.set(cfg.name)
-        brand_menu.pack(side="right")
-
-        def on_brand_change(choice):
-            global CFG
-            for b in brands.values():
-                if b.name == choice:
-                    CFG = b
-                    last_findings.clear()
-                    update_ui()
-                    break
-
-        brand_menu.bind("<<ComboboxSelected>>", on_brand_change)
-        brand_menu_label = ttk.Label(
-            brand_bar,
-            font=("Segoe UI", 11),
-            foreground=TEXT_MUTED,
-            text=t("brand_label"),
-        )
-        brand_menu_label.pack(side="right", padx=(0, 8))
-
-    # Language selector: single dropdown, top-right corner
-    lang_bar = ttk.Frame(root, padding=(20, 10, 20, 0))
-    lang_bar.pack(fill="x")
-
-    lang_menu = ttk.Combobox(
-        lang_bar,
-        values=list(translations.LANG_DISPLAY_NAMES.values()),
-        state="readonly",
-        width=13,
-        font=("Segoe UI", 11),
+    status_dot = tk.Label(
+        status_bar, text="●", font=("Segoe UI", 10),
+        foreground=STATUS_COLORS["info"], bg="#ffffff",
     )
-    lang_menu.set(translations.LANG_DISPLAY_NAMES[language])
-    lang_menu.bind("<<ComboboxSelected>>", on_language_change)
-    lang_menu.pack(side="right")
+    status_dot.pack(side="left", padx=(0, 8))
 
-    # Title centered
-    main_label = ttk.Label(root, font=("Segoe UI", 18, "bold"), anchor="center")
-    main_label.pack(fill="x", padx=20, pady=(6, 10))
-
-    # Primary actions: full-width stack
-    actions = ttk.Frame(root)
-    actions.pack(fill="x", padx=20, pady=(2, 2))
-
-    btn_check = ttk.Button(actions, bootstyle="info", command=check_brand_browser)
-    btn_check.pack(fill="x", pady=2)
-
-    btn_registry = ttk.Button(actions, bootstyle="secondary", command=check_registry_for_brand)
-    btn_registry.pack(fill="x", pady=2)
-
-    btn_kill = ttk.Button(actions, bootstyle="info", command=kill_brand_processes)
-    btn_kill.pack(fill="x", pady=2)
-
-    btn_delete = ttk.Button(actions, bootstyle="danger", command=uninstall_brand_browser)
-    btn_delete.pack(fill="x", pady=(2, 6))
-
-    # Hijack section card: pinned above the policy card
-    hijack_card = ttk.Labelframe(root, text=t("hijack_section"), padding=(16, 8, 16, 12))
-    hijack_card.pack(side="bottom", fill="x", padx=20, pady=(6, 4))
-
-    btn_hijack = ttk.Button(hijack_card, bootstyle="info", command=scan_hijacks)
-    btn_hijack.pack(fill="x", pady=(2, 6))
-
-    findings_box = tk.Text(
-        hijack_card,
-        height=3,
-        wrap="word",
-        font=("Consolas", 10),
-        relief="flat",
-        background="#f8fafc",
-        foreground="#1f2937",
-        borderwidth=0,
-        highlightthickness=1,
-        highlightbackground="#e2e8f0",
-        padx=8,
-        pady=6,
+    status_label = ttk.Label(
+        status_bar, font=("Segoe UI", 10), justify="left", anchor="w"
     )
-    findings_box.pack(fill="x", pady=(0, 6))
-    findings_box.configure(state=tk.DISABLED)
+    status_label.pack(side="left", fill="x", expand=True)
 
-    btn_hijack_remove = ttk.Button(hijack_card, bootstyle="warning", command=remove_hijacks)
-    btn_hijack_remove.pack(fill="x", pady=(0, 2))
+    # Footer: product identity + GitHub + auto-update indicator
+    footer = ttk.Frame(root, padding=(16, 2, 16, 10))
+    footer.pack(side="bottom", fill="x")
+
+    footer_label = ttk.Label(
+        footer,
+        font=("Segoe UI", 9),
+        foreground=TEXT_MUTED,
+        text=f"{cfg.product_names[PROFILE]} {cfg.app_version} by {cfg.app_author}",
+    )
+    footer_label.pack(side="left")
+
+    update_link = ttk.Label(
+        footer, font=("Segoe UI", 9, "underline"), foreground=STATUS_COLORS["ok"],
+        text="", cursor="hand2",
+    )
+    update_link.pack(side="left", padx=(10, 0))
+
+    github_link = ttk.Label(
+        footer,
+        font=("Segoe UI", 9, "underline"),
+        foreground="#0369a1",
+        text="GitHub",
+        cursor="hand2",
+    )
+    github_link.pack(side="right")
+    github_link.bind(
+        "<Button-1>", lambda e: webbrowser.open(f"https://github.com/{CFG.repo}")
+    )
+
+    def _retune_status(event=None):
+        """Keep the status text wrapping inside the bar at any width."""
+        width = status_label.winfo_width()
+        if width > 1:
+            new_wrap = max(120, width - 20)
+            if status_label.cget("wraplength") != new_wrap:
+                status_label.configure(wraplength=new_wrap)
+
+    status_bar.bind("<Configure>", _retune_status)
 
     def update_ui():
         """Refresh every translatable text in the interface."""
@@ -787,13 +834,13 @@ def run(cfg: BrandConfig, profile_name: str, brands: dict | None = None) -> None
         btn_restore.configure(text=t("restore_btn"))
         btn_export.configure(text=t("export_btn"))
         chk_watchdog.configure(text=t("watchdog_label"))
+        actions_card.configure(text=t("quick_actions"))
         update_status(t("status_wait"))
         _render_findings([])  # stale findings are in the previous language
-        # Multi-brand mode: footer shows the currently selected brand.
-        global footer_label
+        # Footer always reflects the currently selected brand.
         footer_label.configure(
             text=f"{CFG.product_names[PROFILE]} {CFG.app_version} "
-                 f"by {CFG.app_author} |"
+                 f"by {CFG.app_author}"
         )
 
     update_ui()
