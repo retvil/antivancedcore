@@ -564,7 +564,7 @@ def run(cfg: BrandConfig, profile_name: str, brands: dict | None = None) -> None
     global CFG, PROFILE, language
     global root, status_label, findings_box, engine_menu, main_label, footer_label
     global status_dot, findings_label, findings_scroll, actions_card
-    global btn_check, btn_registry, btn_kill, btn_delete
+    global btn_check, btn_registry, btn_kill, btn_delete, btn_scan_all
     global btn_hijack, btn_hijack_remove, policy_card, hijack_card, maint_card
     global btn_policy, btn_unbaidu_policy, update_link
     global btn_restore, btn_export, chk_watchdog
@@ -602,34 +602,119 @@ def run(cfg: BrandConfig, profile_name: str, brands: dict | None = None) -> None
                 break
         update_ui()
 
-    # Brand selector (multi-brand mode only): the headline feature, so it gets
-    # a hero position. Shown above the title, full width, large font.
-    brand_menu = None
+    # Brand selector (multi-brand mode only): pick ONE OR MORE vendors. A
+    # checklist of every brand + a "select all" toggle. The "Scan selected"
+    # button (primary actions card) runs the workflow across all chosen
+    # brands and aggregates their findings.
+    brand_vars: dict[str, tk.BooleanVar] = {}
     if brands:
-        brand_bar = ttk.Labelframe(root, text=t("brand_label"), padding=(16, 10, 16, 10))
+        brand_bar = ttk.Labelframe(root, text=t("brand_label"), padding=(16, 10, 16, 12))
         brand_bar.pack(fill="x", padx=20, pady=(14, 0))
 
-        brand_names = [b.name for b in brands.values()]
-        brand_menu = ttk.Combobox(
+        # Two-column checklist (5 brands per column) for compactness.
+        checklist = ttk.Frame(brand_bar)
+        checklist.pack(fill="x")
+        cols = 2
+        for i, b in enumerate(brands.values()):
+            var = tk.BooleanVar(value=(i == 0))
+            brand_vars[b.name] = var
+            cb = tk.Checkbutton(
+                checklist,
+                text=b.name,
+                variable=var,
+                anchor="w",
+                font=("Segoe UI", 10),
+                bg="#ffffff",
+                activebackground="#ffffff",
+            )
+            cb.grid(row=i // cols, column=i % cols, sticky="w", padx=(0, 12), pady=2)
+        checklist.columnconfigure(0, weight=1, uniform="col")
+        checklist.columnconfigure(1, weight=1, uniform="col")
+
+        def on_select_all():
+            val = select_all_var.get()
+            for v in brand_vars.values():
+                v.set(val)
+            _update_selected_count()
+
+        select_all_var = tk.BooleanVar(value=True)
+        select_all_btn = tk.Checkbutton(
             brand_bar,
-            values=brand_names,
-            state="readonly",
-            font=("Segoe UI", 13, "bold"),
+            text=t("select_all"),
+            variable=select_all_var,
+            command=on_select_all,
+            font=("Segoe UI", 9, "bold"),
+            bg="#ffffff",
+            activebackground="#ffffff",
         )
-        brand_menu.set(cfg.name)
-        brand_menu.pack(fill="x")
+        select_all_btn.pack(anchor="w", pady=(6, 0))
 
-        def on_brand_change(choice):
-            global CFG
-            for b in brands.values():
-                if b.name == choice:
-                    CFG = b
-                    last_findings.clear()
-                    _render_findings([])
-                    update_ui()
-                    break
+        selected_label = ttk.Label(
+            brand_bar, text="", style="Muted.TLabel", font=("Segoe UI", 9), anchor="w"
+        )
+        selected_label.pack(anchor="w", pady=(2, 0))
 
-        brand_menu.bind("<<ComboboxSelected>>", on_brand_change)
+        def _update_selected_count():
+            n = sum(1 for v in brand_vars.values() if v.get())
+            if n == len(brand_vars):
+                selected_label.configure(text=t("all_selected"))
+            else:
+                selected_label.configure(text=t("selected_count").format(n))
+
+        for v in brand_vars.values():
+            v.trace_add("write", lambda _=None: _update_selected_count())
+        _update_selected_count()
+
+    def _selected_brand_cfgs() -> list:
+        """The BrandConfigs for every checked brand, in registry order.
+
+        In single-brand mode (``brands is None``) this returns the one active
+        CFG, so "scan selected" degrades to the normal single-brand scan.
+        """
+        if not brands:
+            return [CFG]
+        out = []
+        for b in brands.values():
+            if brand_vars.get(b.name, tk.BooleanVar()).get():
+                out.append(b)
+        return out
+
+    def scan_selected_all():
+        """Run the scan across every selected brand and aggregate findings."""
+        chosen = _selected_brand_cfgs()
+        if not chosen:
+            messagebox.showwarning(t("title"), t("select_none"))
+            return
+
+        def task():
+            run_in_ui(lambda: update_status(t("status_searching"), STATUS_COLORS["info"]))
+            agg = []
+            for b in chosen:
+                try:
+                    findings = b.load_detect_module().scan_all(PROFILE, b)
+                except Exception:
+                    continue
+                # In multi mode tag each finding with its brand for clarity.
+                prefix = f"[{b.name}] " if len(chosen) > 1 else ""
+                for f in findings:
+                    agg.append(f"{prefix}{f}")
+
+            def done():
+                global last_findings
+                last_findings = agg
+                if agg:
+                    _render_findings(
+                        [t("hijack_found").format(len(agg))] + [f"•  {f}" for f in agg]
+                    )
+                    update_status(t("hijack_found").format(len(agg)), STATUS_COLORS["warn"])
+                    _open_selection_dialog(agg)
+                else:
+                    _render_findings([t("hijack_clean")])
+                    update_status(t("hijack_clean"), STATUS_COLORS["ok"])
+
+            run_in_ui(done)
+
+        threading.Thread(target=task, daemon=True).start()
 
     # Language selector: single dropdown, top-right
     lang_bar = ttk.Frame(root, padding=(20, 10, 20, 0))
@@ -671,6 +756,14 @@ def run(cfg: BrandConfig, profile_name: str, brands: dict | None = None) -> None
 
     btn_delete = ttk.Button(actions, bootstyle="danger", command=uninstall_brand_browser)
     btn_delete.grid(row=1, column=1, sticky="ew", padx=(4, 0), pady=3)
+
+    # "Scan selected" — the headline multi-brand action: run the hijack scan
+    # across every checked brand and aggregate the findings. In single-brand
+    # mode it behaves like the normal scan.
+    btn_scan_all = ttk.Button(
+        actions_card, bootstyle="primary", command=scan_selected_all
+    )
+    btn_scan_all.pack(fill="x", pady=(8, 0))
 
     # Search hijacks: the main workflow, visually prominent with a scrollable
     # findings list and a live count.
@@ -835,6 +928,7 @@ def run(cfg: BrandConfig, profile_name: str, brands: dict | None = None) -> None
         btn_export.configure(text=t("export_btn"))
         chk_watchdog.configure(text=t("watchdog_label"))
         actions_card.configure(text=t("quick_actions"))
+        btn_scan_all.configure(text=t("scan_all_btn"))
         update_status(t("status_wait"))
         _render_findings([])  # stale findings are in the previous language
         # Footer always reflects the currently selected brand.

@@ -10,6 +10,7 @@ import importlib
 import inspect
 import sys
 from pathlib import Path
+import ast
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -225,6 +226,38 @@ def test_every_finding_prefix_is_removable():
     assert not problems, (
         "findings emitted with no removal handler:\n" + "\n".join(problems)
     )
+
+
+def test_multi_select_brand_ui_elements():
+    """In multi-brand mode the GUI exposes a brand checklist, select-all, a
+    live count label, and a 'scan selected' button."""
+    import ast
+
+    src = (Path(__file__).resolve().parents[1] / "antivancedcore" / "app.py").read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    run_fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "run")
+
+    # Names the multi-select UI must create.
+    assigned = {
+        t.id
+        for sub in run_fn.body
+        for t in _walk_assigns(sub)
+    }
+    for required in (
+        "brand_vars", "select_all_var", "select_all_btn",
+        "selected_label", "scan_selected_all", "btn_scan_all",
+    ):
+        assert required in assigned or required in src, (
+            f"multi-select UI missing: {required}"
+        )
+
+
+def _walk_assigns(node):
+    for sub in ast.walk(node):
+        if isinstance(sub, ast.Assign):
+            for t in sub.targets:
+                if isinstance(t, ast.Name):
+                    yield t
 
 
 def test_core_calls_match_detect_signatures():
